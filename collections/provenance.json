@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "source_project": "Spectral-Clustering-and-Query-Expansion-using-Embeddings-on-the-GSB",
+  "source_root": "to_merge/Spectral-Clustering-and-Query-Expansion-using-Embeddings-on-the-GSB",
+  "source_type": "local working-tree snapshot; upstream revision not established",
+  "imported_on": "2026-09-28",
+  "transformations": "none; byte-preserving copies",
+  "source_mappings": [
+    {
+      "destination": "collections/CF",
+      "scope": "docs, Queries.txt, Relevant.txt",
+      "source": "collections/CF"
+    },
+    {
+      "destination": "collections/CF/raw",
+      "source": "datasets/CF_RAW"
+    },
+    {
+      "destination": "collections/baeza",
+      "source": "collections/baeza"
+    },
+    {
+      "destination": "collections/test",
+      "source": "collections/test"
+    }
+  ],
+  "imported_data_files": 1256,
+  "checksum_manifest": "checksums.sha256",
+  "checksum_manifest_sha256": "74fd5552e240e8e437a262edc1ff01ee4df4892637ee714176f8980d22c2b00f",
+  "validation": [
+    {
+      "collection": "CF",
+      "documents": 1239,
+      "queries": 100,
+      "judgments": 4819,
+      "empty_documents": 0,
+      "duplicate_document_ids": 0,
+      "dangling_judgments": 0,
+      "duplicate_judgments": 0
+    },
+    {
+      "collection": "baeza",
+      "documents": 4,
+      "queries": 0,
+      "judgments": 0,
+      "empty_documents": 0,
+      "duplicate_document_ids": 0,
+      "dangling_judgments": 0,
+      "duplicate_judgments": 0
+    },
+    {
+      "collection": "test",
+      "documents": 4,
+      "queries": 0,
+      "judgments": 0,
+      "empty_documents": 0,
+      "duplicate_document_ids": 0,
+      "dangling_judgments": 0,
+      "duplicate_judgments": 0
+    }
+  ],
+  "raw_cf_validation": {
+    "relevance_sets_match_snapshot": true,
+    "document_ids_match_snapshot": true,
+    "query_records": 100,
+    "document_records": 1239,
+    "declared_judgment_counts_match": true
+  },
+  "source_comparison": {
+    "gsb_and_girte_cf": "1209 document files each; all match selected docs; query and relevance files byte-identical; 29 absent relevant IDs affect 166 judgments",
+    "spectral_parsed_docs": "454 of 1239 files differ from selected CF docs; document 00012 lacks EX text",
+    "spectral_punc_docs": "1239 of 1239 files byte-identical to selected CF docs"
+  },
+  "excluded_collections": [
+    {
+      "collection": "CRAN",
+      "source": "Gsb_model",
+      "reason": "1400 documents, but IDs 471 and 995 are empty; pending investigation"
+    },
+    {
+      "collection": "NPL",
+      "source": "Gsb_model",
+      "reason": "Only 1430 documents, IDs 10000-11429; 1523 absent relevant IDs affect 1839 judgments"
+    }
+  ],
+  "limitations": [
+    "Local integrity checks only; no external authenticity verification",
+    "Exact preprocessing generation recipe not yet reproduced",
+    "Small examples have no supplied queries or relevance judgments"
+  ]
+}

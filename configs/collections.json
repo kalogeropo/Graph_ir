@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "path_base": "repository_root",
+  "collections": {
+    "CF": {
+      "path": "collections/CF",
+      "documents": "docs",
+      "queries": "Queries.txt",
+      "relevance": "Relevant.txt",
+      "raw_documents": "raw/docs",
+      "raw_queries_and_assessments": "raw/cfquery",
+      "document_format": "one_token_per_line",
+      "document_id_source": "numeric_filename",
+      "query_id_source": "one_based_line_number",
+      "relevance_format": "document_ids_per_query_line",
+      "document_count": 1239,
+      "query_count": 100,
+      "snapshot": "spectral_cf_punc_docs",
+      "role": "benchmark"
+    },
+    "baeza": {
+      "path": "collections/baeza",
+      "documents": "docs",
+      "document_format": "one_token_per_line",
+      "document_id_source": "numeric_filename",
+      "document_count": 4,
+      "queries": null,
+      "relevance": null,
+      "role": "example"
+    },
+    "test": {
+      "path": "collections/test",
+      "documents": "docs",
+      "document_format": "one_token_per_line",
+      "document_id_source": "numeric_filename",
+      "document_count": 4,
+      "queries": null,
+      "relevance": null,
+      "role": "example"
+    }
+  }
+}

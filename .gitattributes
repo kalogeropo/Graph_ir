@@ -1,0 +1,2 @@
+# Preserve imported dataset bytes, including line endings, for checksum validation.
+collections/** -text

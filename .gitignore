@@ -1,0 +1,19 @@
+# Original projects retained locally as migration references.
+/to_merge/
+
+# Generated experiment outputs; retain the directory placeholder.
+/artifacts/*
+!/artifacts/.gitkeep
+
+# Python build outputs, environments, and caches.
+__pycache__/
+*.py[cod]
+*.egg-info/
+/build/
+/dist/
+/.venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local IDE settings.
+/.idea/
