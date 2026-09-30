@@ -1,9 +1,11 @@
 import csv
 import json
-from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
+from nltk.corpus import stopwords
 
-from graph_ir.data.preprocessing.document import Document
+from graph_ir.data.document import Document
+from graph_ir.indexing.inverted_index import build_inverted_index
 
 
 
@@ -11,6 +13,7 @@ from graph_ir.data.preprocessing.document import Document
 class Collection:
     def __init__(self, path: str | Path , docs=None):
 
+        self.stopwords = stopwords.words("english")
         self.path = Path(path)
         self.docs = list(docs) if docs is not None else []
         self.num_docs = len(self.docs)
@@ -19,12 +22,21 @@ class Collection:
         self.qrels = {}
         self.inverted_index = {}
         self.doc_id_to_position = {}
+        self.preprocessor: Callable[[str | list[str]], list[str]] | None = None
 
 
 
     def create(self, first: int | None = None,
-               fields=("title", "text", "abstract", "extract")):
-        """Load documents and build their inverted index."""
+               fields=("title", "text", "abstract", "extract"), *,
+               preprocessor: Callable[[str | list[str]], list[str]] | None = None):
+        """Load documents, optionally preprocess their terms, and build the index.
+
+        The preprocessor receives raw text or stored tokens and returns a token
+        list. Original document text and IDs are preserved. Models use this same
+        function for queries during fitting; loaded query text stays unchanged.
+        Omitting it preserves whitespace tokenization and any existing tokens.
+        Each call reloads the source documents before applying the chosen rules.
+        """
         if first is not None and first < 0:
             raise ValueError("first must be nonnegative or None")
 
@@ -50,7 +62,11 @@ class Collection:
                         if record.get(field)
                     )
 
-                documents.append(Document(text=text, id=document_id))
+                document = Document(text=text, id=document_id)
+                if preprocessor is not None:
+                    document.terms = preprocessor(text)
+                    document.num_of_words = len(document.terms)
+                documents.append(document)
                 seen_ids.add(document_id)
 
         self.docs = documents
@@ -60,27 +76,13 @@ class Collection:
             document.id: position
             for position, document in enumerate(self.docs)
         }
+        self.preprocessor = preprocessor
 
         return self
 
     def create_inverted_index(self):
         """Build an index whose postings map document IDs to term frequencies."""
-        index = {}
-
-        for document in self.docs:
-            for term, frequency in Counter(document.terms).items():
-                if term not in index:
-                    index[term] = {
-                        "id": len(index),
-                        "term": term,
-                        "total_tf": 0,
-                        "posting_list": {},
-                    }
-
-                index[term]["total_tf"] += frequency
-                index[term]["posting_list"][document.id] = frequency
-
-        return index
+        return build_inverted_index(self.docs)
 
     def load_queries(self):
         qs = {}
@@ -154,11 +156,3 @@ class Collection:
 
         self.qrels = qrels
         return self
-
-if __name__ == "__main__":
-    collection = Collection("/home/nikitas/PycharmProjects/Graph_ir/collections/baeza").create()
-    collection.load_queries().load_qrels()
-    # print(collection.queries)
-    # print(collection.qrels)
-    # print(collection.inverted_index)
-    print(collection.inverted_index)

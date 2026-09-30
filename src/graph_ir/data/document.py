@@ -9,8 +9,9 @@ class Document:
     Attributes:
         text: Original input text or token list.
         id: Document identifier.
-        terms: Tokens produced at initialization, copied when the input is a list.
-        num_of_words: Number of tokens at initialization.
+        terms: Tokens used for indexing. Initially copied or split from text;
+            a collection may replace them with preprocessed tokens.
+        num_of_words: Number of tokens in terms.
     """
 
     def __init__(self, text: str | list[str] = "", id: int | str = -1):
