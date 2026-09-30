@@ -7,8 +7,8 @@ Reusable parsing, preprocessing, retrieval, and evaluation code belongs in
 `src/graph_ir/`; notebooks should call that package. Record input provenance and
 experiment settings, and write generated outputs to `artifacts/`.
 
-The selected CF collection and its original records are now available under
-`collections/CF/`. See [the collection notes](../collections/README.md) and
+The converted CF collection and its recoverable original records are available under
+`collections/cf/`. See [the collection notes](../collections/README.md) and
 [collection configuration](../configs/collections.json). The legacy parsing
 notebook has not been migrated; its parsing behavior needs correction and
 verification before reuse.

@@ -3,10 +3,15 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
+requires-python = ">=3.13"
 name = "graph-ir"
 version = "0.1.0"
 description = "Graph-based information retrieval models and experiments."
-dependencies = []
+dependencies = [
+    "numpy",
+    "gensim>=4.4.0",
+    "networkx>=3.7",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]

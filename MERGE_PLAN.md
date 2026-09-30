@@ -1,21 +1,33 @@
-# Graph_ir model inventory and gradual merge plan
+# Graph_ir complete repository merge plan
 
 Status: scaffold aligned with this plan; migration stages remain proposed, based
-on source inspection on 2026-09-28. No models or preprocessing pipelines have
-been executed or migrated. Root `main.py` is the PyCharm starter script.
+on source inspection on 2026-09-28. No models or model preprocessing pipelines have
+been executed or migrated; raw-record storage parsing has been converted and verified. Root `main.py` is not currently present; the first
+usable workflow will introduce it.
 
-Collection import completed: spectral CF (1,239 documents, 100 queries, 4,819
-judgments), original CF records, and the four-document `baeza` and `test` examples
-are in tracked `collections/`. Imported file hashes and raw CF relevance sets
-were checked. See [collection notes](collections/README.md),
-[provenance](collections/provenance.json), and
-[path configuration](configs/collections.json). Model reference runs remain pending.
+Collection storage conversion completed: CF, Cranfield, NPL, `baeza`, and `test`
+now have explicit-ID document/query JSONL and explicit relevance-profile TSV in tracked
+`collections/`. Raw CF/Cranfield fields and assessments, legacy tokens/query text,
+and source variants remain available in the original projects under `to_merge/`.
+Migration scripts, manifests, duplicate archives, and generated verification
+reports were removed after collection cleanup. Collection files were checked
+against the raw inputs before cleanup; NPL remains incomplete and
+Cranfield retains two empty documents. See [collection notes](collections/README.md),
+[path configuration](configs/collections.json). Model reference runs and model
+preprocessing migration remain pending.
 
 Scope clarification: the final goal is one repository containing the functionality
 of all four projects, including each project's preprocessing, parsers, indexing,
 models, evaluation, experiments, exports, and analysis workflows. The model
 inventory below is the starting point, not the full migration scope. Package
 scaffolding now exists; implementation migration has not started.
+
+This plan covers the merge only. Algorithm improvements, new retrieval methods,
+parameter tuning, and performance optimization are outside its scope. Required
+compatibility repairs and fixes that unblock migrated workflows are included,
+but must be documented separately from behavior-preserving migration. Adding
+standard metrics establishes a shared evaluation interface; it does not redefine
+historical results or make improved effectiveness a merge acceptance condition.
 
 `to_merge/` is ignored by Git as requested and remains a local source reference.
 Migrated code must live in the tracked package and supporting directories. The
@@ -115,7 +127,13 @@ sentence/paragraph segmentation. Do not assume all its algorithms are redundant.
    its rank counter before testing the cutoff, producing an off-by-one cutoff
    for typical k values. The latter can return NaN when no relevant item is hit.
    Preserve historical metrics under explicit legacy names; add separately
-   validated P@k, R@k, AP/MAP, and MRR. Do not relabel old results as new metrics.
+   validated P@k, R@k, AP/MAP, MRR, and nDCG@k. Do not relabel old results as new metrics.
+   CF's four-digit assessment codes are four separate 0..2 ratings. Preserve
+   assessor-specific profiles; any aggregate requires an explicit policy.
+   Cranfield's graded profile preserves 1..4 and maps -1 to zero; its corrected
+   binary profile excludes those 225 nonrelevant pairs. Keep the historical
+   all-listed-pairs profile for reproduction. nDCG must record the grade profile,
+   cutoff, gain function, unjudged policy, ties, and zero-IDCG behavior.
 3. **Model state.** GSB implementations write `nwk` into the collection's inverted
    index. Other model variants can overwrite those weights. Use isolated legacy
    collections for reference runs and model-owned weights in the merged code.
@@ -231,13 +249,17 @@ token alignment where applicable. Include punctuation, casing, empty text,
 stopwords, repeated words, and long documents. Model ranking parity alone is not
 enough to demonstrate preprocessing parity.
 
-The first proposed compatibility profile uses imported CF document tokens unchanged.
+The first proposed compatibility profile uses the spectral CF legacy token
+snapshot in the spectral source project's `collections/CF/docs/` unchanged.
+Capture required reference fixtures in tracked tests during model migration.
 Preserve the spectral query loader's two paths: its default Gensim cleaning plus
 NLTK English stopword removal, and whitespace splitting with `prep=False`. Do not
 silently remove document stopwords or assume document/query processing is identical.
-New profiles should parse `TI`, `AB`, and `EX` fields from `collections/CF/raw/`
-before transforming text, retaining punctuation/boundaries for windowed models
-and original text for transformer encoding. The old parser notebook is not a
+Migrated raw-input profiles should parse `TI`, `AB`, and `EX` fields from
+the raw fields in `collections/cf/corpus.jsonl` before transforming text. Preserve each source workflow's
+field selection, punctuation/boundaries for windowed models, and original text
+for transformer encoding. Do not introduce new preprocessing experiments as
+part of the merge. The old parser notebook is not a
 validated preprocessing implementation; its `('AB' or 'EX')` test misses `EX`.
 
 Proposed public flow: `model.index(corpus)` then `model.search(queries, top_k)`
@@ -257,13 +279,13 @@ last stages without skipping the shared data/evaluation foundation.
 
 | Stage | Work | Gate before proceeding |
 | --- | --- | --- |
-| 0. Preserve references | Record source hashes, dependency environments, dataset provenance, parameters, and entry points. Capture small reference rankings/scores in isolated runs. Record blockers where originals cannot run. | Each initial model has a reference result or a documented blocker; no baseline is invented |
-| 1. Data and evaluation | Add the package, explicit IDs, a tiny fixture, collection loader, independent metrics, and preprocessing profiles. | Hand-calculated metric examples pass; non-contiguous IDs, empty/OOV queries, no relevant hits, and ties have defined behavior |
+| 0. Preserve and inventory sources | Preserve recoverable source snapshots plus hashes, dependency environments, dataset provenance, parameters, and entry points. Create a source-to-destination checklist for all four projects. Capture isolated reference outputs per family before its migration; record blockers and any minimal reference repairs. | All sources are preserved and inventoried; the first family has reference outputs or documented blockers. Later families do not block the first migration; no reference is invented |
+| 1. Parsing, preprocessing, indexing, and evaluation | Implement document/query/qrel structures, explicit ID mappings, loaders and required raw parsers, named document/query preprocessing profiles, postings, a tiny fixture, migrated legacy metrics, and independently validated standard metrics. Extend these components with each family's source-specific requirements. | Parser fields and IDs, ordered tokens, frequencies, and boundaries match references or documented repairs; hand-calculated metrics pass; ranking and metric edge cases have explicit conventions |
 | 2. First usable model | Port SB with Apriori; add the thin CLI in root `main.py`. | A tiny corpus runs end to end; termsets, frequencies, scores, and rankings agree with the chosen reference or documented fixes |
 | 3. Baselines | Add BM25 and VectorSpace with explicit document order and standard result objects. | Fixed-input rankings are reproducible; scores/IDs and standard metrics are validated |
 | 4. Graph models | Add GSB, fixed/proportional window GSB, then k-core/pruning settings. Compare GSB and infre implementations. | Compare adjacency, union graph, Win/Wout, node weights, and ranking; running models in either order gives the same results |
 | 5. GoW and fusion | Add the GoW adapter and Borda fusion; translate representative ensemble scripts to configs. | Validate different ranking lengths, ties, missing documents, and repeated calls; compare representative legacy ensembles |
-| 6. Spectral family | Add seeded embedding/clustering, PGSB/PGSBW, then ConGSB/ConGSBWindow and expansion strategies. | Preserve term-to-embedding alignment; validate disconnected graphs and pruning; explicitly measure expansion effects and reproducibility |
+| 6. Spectral family | Add seeded embedding/clustering, PGSB/PGSBW, then ConGSB/ConGSBWindow and expansion strategies. | Preserve term-to-embedding alignment; validate disconnected graphs and pruning; verify migrated expansion outputs against references and seeded reproducibility |
 | 7. Transformer family | Reuse one configured encoder; add tokenized GSB, embedding GIRTE, then TensorModel. Replace hard-coded caches. | Token-only behavior is validated first; caches cannot cross corpora; truncation/chunking, token aggregation, thresholding, and tensor order are tested |
 | 8. Complete repository coverage | Trace procedural branches, preserve unique preprocessing and algorithms, assess DocGraph/onlineGSB, and migrate remaining parsers, exports, experiment scripts, and analysis workflows. Consolidate duplicates only after parity evidence. | The source-to-destination checklist is accounted for; supported workflows run from raw inputs through preprocessing to results without `to_merge/`; any remaining deferral is explicit and means the full merge is still incomplete |
 
@@ -274,13 +296,14 @@ the replacement passes its gate. Each model stage includes its required original
 preprocessing and supporting workflow, not just the model class. No deletion of
 legacy trees is part of this plan.
 
-## 5. Benchmark strategy
+## 5. Merge verification strategy
 
 - Start with a tiny hand-inspectable corpus, then a pinned CF subset, then full CF.
   Use the imported spectral CF snapshot. The GSB/GIRTE copies lack 30 documents;
   29 of those IDs are referenced by 166 judgments. Rankings across these snapshots
   are not directly comparable. Cranfield has two empty documents and NPL is
-  incomplete in the inspected copies, so their imports remain pending.
+  incomplete in the inspected copies. Both are now stored with these issues
+  recorded; NPL is not a complete evaluation benchmark.
 - Record document/query/qrel hashes, preprocessing profile, model configuration,
   dependency versions, seed, and source version with each result.
 - Compare exact IDs and rankings, with declared tolerances for floating-point
@@ -288,18 +311,52 @@ legacy trees is part of this plan.
   rankings differ. Spectral embeddings can differ by sign/rotation, so compare
   relevant similarities and behavior rather than raw coordinates alone.
 - Keep legacy reproduction and standardized evaluation as separate reports.
-  Baseline improvements must not result merely from a changed corpus or metric.
-- Measure indexing time, retrieval time, and memory on the same inputs after
-  correctness is established. Full transformer runs come after small smoke runs.
+  Report migration parity and documented differences; improved retrieval quality
+  is not a merge gate.
+- Run representative source workflows through parsing/loading, preprocessing,
+  indexing, retrieval, evaluation, export, and notebook analysis. Verify output
+  schemas and provenance as well as rankings. Full transformer verification
+  follows small smoke runs; performance optimization belongs to later work.
 
 ## 6. Recommended first implementation increment
 
-Create the package and fixture, verify standard metrics, migrate only SetBased
-plus its required indexing/Apriori behavior, and make `main.py` run that example.
+Preserve the source snapshots and create the migration checklist first. Establish
+an isolated SetBased reference: the current GSB `SetBasedModel._model_func()`
+raises `NotImplementedError` when inherited `fit()` calls it, so document its
+blocker and any minimal reference repair rather than claiming an untouched run.
+
+Use the existing package scaffold, add the fixture, migrate the required document
+and query loading/preprocessing, explicit-ID indexing and Apriori behavior, and
+legacy metrics. Verify standard metrics independently, port SetBased, and create
+`main.py` to run that complete workflow.
 Keep its acceptance scope small: explicit document IDs, reproducible scores and
 rankings, source-parity evidence, and no unrelated model migration.
 
 The repository scaffold and selected collection snapshots are in place. Original
-files under `to_merge/` and the starter `main.py` remain unchanged. Preprocessing
-migration, model implementation, runtime compatibility, and benchmark parity are
-work for the implementation stages.
+files under `to_merge/` remain migration references. Root `main.py` will be
+created during implementation. Parsers, preprocessing, indexing, metrics, models,
+exports, experiments, and analysis migration remain implementation work.
+
+## 7. Definition of a completed merge
+
+The merge is complete only when:
+
+- All four projects' code and workflows are accounted for in the migration
+  checklist, including preprocessing, parsers, indexing, graph helpers, models,
+  metrics, experiment settings, exports, notebooks, datasets, and historical results.
+- Every implemented source behavior has a tracked destination or a verified
+  equivalent. Distinct variants remain available through explicit configurations;
+  unfinished prototypes retain an explicit historical status without being
+  presented as completed models.
+- Document and query preprocessing preserve source-specific semantics, including
+  segmentation and transformer token alignment. Required raw-input and existing
+  tokenized-input workflows both run from documented inputs.
+- Legacy metrics retain explicit names and provenance. Standard metrics have
+  validated definitions covering cutoffs, ties, duplicates, short result lists,
+  no-hit queries, queries without relevant documents, and AP denominators.
+- Representative workflows run through retrieval, evaluation, exports, and
+  analysis using only tracked package code and documented data/dependencies,
+  without runtime access to `to_merge/`.
+- Reference comparisons and all required compatibility repairs are documented.
+  Any deferred implemented source functionality means the full merge remains
+  incomplete. New algorithms, tuning, and optimization are separate future work.

@@ -1,42 +1,56 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "path_base": "repository_root",
   "collections": {
-    "CF": {
-      "path": "collections/CF",
-      "documents": "docs",
-      "queries": "Queries.txt",
-      "relevance": "Relevant.txt",
-      "raw_documents": "raw/docs",
-      "raw_queries_and_assessments": "raw/cfquery",
-      "document_format": "one_token_per_line",
-      "document_id_source": "numeric_filename",
-      "query_id_source": "one_based_line_number",
-      "relevance_format": "document_ids_per_query_line",
-      "document_count": 1239,
-      "query_count": 100,
-      "snapshot": "spectral_cf_punc_docs",
-      "role": "benchmark"
+    "cf": {
+      "path": "collections/cf",
+      "documents": "corpus.jsonl",
+      "queries": "queries.jsonl",
+      "relevance": "qrels.tsv",
+      "status": "benchmark",
+      "relevance_profiles": {
+        "binary": "qrels.tsv",
+        "assessor-1": "qrels-assessor-1.tsv",
+        "assessor-2": "qrels-assessor-2.tsv",
+        "assessor-3": "qrels-assessor-3.tsv",
+        "assessor-4": "qrels-assessor-4.tsv"
+      },
+      "default_relevance_profile": "binary",
+      "binary_relevance_threshold": 1
+    },
+    "cranfield": {
+      "path": "collections/cranfield",
+      "documents": "corpus.jsonl",
+      "queries": "queries.jsonl",
+      "relevance": "qrels.tsv",
+      "status": "benchmark",
+      "relevance_profiles": {
+        "graded": "qrels.tsv",
+        "binary": "qrels-binary.tsv"
+      },
+      "default_relevance_profile": "graded",
+      "binary_relevance_threshold": 1
+    },
+    "npl": {
+      "path": "collections/npl",
+      "documents": "corpus.jsonl",
+      "queries": "queries.jsonl",
+      "relevance": "qrels.tsv",
+      "status": "incomplete"
     },
     "baeza": {
       "path": "collections/baeza",
-      "documents": "docs",
-      "document_format": "one_token_per_line",
-      "document_id_source": "numeric_filename",
-      "document_count": 4,
-      "queries": null,
-      "relevance": null,
-      "role": "example"
+      "documents": "corpus.jsonl",
+      "queries": "queries.jsonl",
+      "relevance": "qrels.tsv",
+      "status": "example"
     },
     "test": {
       "path": "collections/test",
-      "documents": "docs",
-      "document_format": "one_token_per_line",
-      "document_id_source": "numeric_filename",
-      "document_count": 4,
-      "queries": null,
-      "relevance": null,
-      "role": "example"
+      "documents": "corpus.jsonl",
+      "queries": "queries.jsonl",
+      "relevance": "qrels.tsv",
+      "status": "example"
     }
   }
 }

@@ -17,3 +17,23 @@ __pycache__/
 
 # Local IDE settings.
 /.idea/
+
+# Local assistant settings.
+/.aiassistant/
+
+# Generated analysis, test, and coverage files.
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.coverage
+.coverage.*
+htmlcov/
+
+# Local operating-system metadata.
+.DS_Store
+Thumbs.db
+
+# Obsolete collection layouts replaced by JSONL and TSV files.
+/collections/CF/
+/collections/*/docs/
+/collections/*/raw/

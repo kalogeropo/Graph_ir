@@ -5,8 +5,8 @@ under `to_merge/`: parsing, preprocessing, indexing, models, evaluation,
 experiments, and analysis.
 
 The repository contains package scaffolding and validated collection snapshots.
-No models or preprocessing pipelines have been migrated, and `main.py` is still
-the starter script.
+No models or preprocessing pipelines have been migrated. Collection storage and
+raw-record parsing are converted and verified; `main.py` has not been created.
 
 ## Structure
 
@@ -44,16 +44,20 @@ The `data` package contains Python code, not raw dataset files. Imported inputs
 live in `collections/`; paths and formats are recorded in
 [configs/collections.json](configs/collections.json).
 
-The selected spectral CF snapshot has 1,239 documents, 100 queries, and 4,819
-relevance judgments. Original CF records are preserved in `collections/CF/raw/`.
-The `baeza` and `test` examples each have four documents and no supplied queries
-or judgments. Cranfield and NPL imports are pending data-quality issues.
+Collections now use `corpus.jsonl`, `queries.jsonl`, and `qrels.tsv`, with explicit
+IDs and direct paths in `configs/collections.json`. Cranfield has
+explicit graded/binary relevance profiles; CF preserves its four assessor-specific
+0..2 profiles alongside binary relevance. These prepare the data for nDCG. CF contains 1,239
+documents and 100 queries; Cranfield contains 1,400 documents and 225 queries,
+including two empty documents. NPL preserves its incomplete 1,430-document
+snapshot and 93 queries without discarding missing-document judgments. The
+`baeza` and `test` examples each have four documents and no supplied queries.
 
-See [collections/README.md](collections/README.md) for validation evidence, source
-provenance, checksums, and the preprocessing proposal. Existing CF documents are
-already tokenized: the first compatibility pipeline should load them unchanged.
-New text-processing pipelines should start from the preserved raw records and
-write derived outputs into `artifacts/`.
+See [collections/README.md](collections/README.md) for record formats and
+relevance score definitions. CF and Cranfield canonical records retain
+raw text fields. Original source-project inputs remain under `to_merge/` for merge
+reference; NPL/examples retain ordered tokens because raw prose is unavailable.
+Migrated preprocessing writes generated outputs into `artifacts/`.
 
 `artifacts/` is for reproducible outputs such as processed-corpus caches, indexes,
 graphs, embeddings, rankings, and result spreadsheets. Original datasets and
