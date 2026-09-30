@@ -35,6 +35,31 @@ def create_freq_term(termsets, min_freq):
     }
 
 
+def _candidate_pairs(freq_termsets, k):
+    """Yield joinable parents in the same order as pairwise combinations."""
+    parents = list(freq_termsets)
+    if k == 0 or any(len(parent) != k + 1 for parent in parents):
+        yield from combinations(parents, 2)
+        return
+
+    # Parents can join only when deleting one term gives a shared subset.
+    subsets = {}
+    parent_subsets = []
+    for position, parent in enumerate(parents):
+        keys = [parent - {term} for term in parent]
+        parent_subsets.append(keys)
+        for subset in keys:
+            subsets.setdefault(subset, []).append(position)
+
+    for position, parent in enumerate(parents):
+        successors = sorted(
+            other for subset in parent_subsets[position]
+            for other in subsets[subset] if other > position
+        )
+        for other in successors:
+            yield parent, parents[other]
+
+
 def create_candidate_k(freq_termsets, k):
     """Join frequent termsets and prune candidates with infrequent subsets.
 
@@ -42,7 +67,7 @@ def create_candidate_k(freq_termsets, k):
     throughout mining to avoid rebuilding sets for every intersection.
     """
     candidates = {}
-    for first, second in combinations(freq_termsets, 2):
+    for first, second in _candidate_pairs(freq_termsets, k):
         if len(first & second) != k:
             continue
 

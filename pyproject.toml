@@ -11,6 +11,7 @@ dependencies = [
     "numpy",
     "networkx>=3.7",
     "nltk>=3.10.3",
+    "ipykernel>=7.4.0",
 ]
 
 optional-dependencies.dev = [

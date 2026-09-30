@@ -1,5 +1,6 @@
 import csv
 import json
+from collections.abc import Callable
 from pathlib import Path
 from nltk.corpus import stopwords
 
@@ -21,12 +22,21 @@ class Collection:
         self.qrels = {}
         self.inverted_index = {}
         self.doc_id_to_position = {}
+        self.preprocessor: Callable[[str | list[str]], list[str]] | None = None
 
 
 
     def create(self, first: int | None = None,
-               fields=("title", "text", "abstract", "extract")):
-        """Load documents and build their inverted index."""
+               fields=("title", "text", "abstract", "extract"), *,
+               preprocessor: Callable[[str | list[str]], list[str]] | None = None):
+        """Load documents, optionally preprocess their terms, and build the index.
+
+        The preprocessor receives raw text or stored tokens and returns a token
+        list. Original document text and IDs are preserved. Models use this same
+        function for queries during fitting; loaded query text stays unchanged.
+        Omitting it preserves whitespace tokenization and any existing tokens.
+        Each call reloads the source documents before applying the chosen rules.
+        """
         if first is not None and first < 0:
             raise ValueError("first must be nonnegative or None")
 
@@ -52,7 +62,11 @@ class Collection:
                         if record.get(field)
                     )
 
-                documents.append(Document(text=text, id=document_id))
+                document = Document(text=text, id=document_id)
+                if preprocessor is not None:
+                    document.terms = preprocessor(text)
+                    document.num_of_words = len(document.terms)
+                documents.append(document)
                 seen_ids.add(document_id)
 
         self.docs = documents
@@ -62,6 +76,7 @@ class Collection:
             document.id: position
             for position, document in enumerate(self.docs)
         }
+        self.preprocessor = preprocessor
 
         return self
 

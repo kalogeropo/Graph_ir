@@ -103,6 +103,22 @@ class AprioriTest(unittest.TestCase):
             frozenset({"a", "b", "c"}): {"2"},
         })
 
+    def test_join_groups_preserve_pairwise_order_across_levels(self):
+        parents = {
+            frozenset(terms): {"shared", str(i)}
+            for i, terms in enumerate(("cd", "ac", "bd", "ab", "bc", "ad"))
+        }
+        triples = create_candidate_k(parents, 1)
+        self.assertEqual(list(triples), [
+            frozenset("acd"), frozenset("bcd"),
+            frozenset("abc"), frozenset("abd"),
+        ])
+        self.assertTrue(all(documents == {"shared"} for documents in triples.values()))
+        self.assertEqual(
+            create_candidate_k(triples, 2),
+            {frozenset("abcd"): {"shared"}},
+        )
+
     def test_termset_order_follows_legacy_levels_and_query_order(self):
         result = apriori(["d", "a", "d", "b"], self.collection.inverted_index, 1)
         self.assertEqual(list(result), [

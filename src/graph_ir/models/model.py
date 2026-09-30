@@ -58,13 +58,18 @@ class Model(ABC):
         and rounding: round(1 + log2(minimum term frequency), 3).
         """
         matrix = np.zeros((len(termsets), self.collection.num_docs))
+        frequency_weights = {}
 
         for row, (termset, document_ids) in enumerate(termsets.items()):
             frequencies = [self.collection.inverted_index[term]["posting_list"] for term in termset]
             for document_id in document_ids:
                 frequency = min(lookup[document_id] for lookup in frequencies)
                 column = self.collection.doc_id_to_position[document_id]
-                matrix[row, column] = round(1 + np.log2(frequency), 3)
+                weight = frequency_weights.get(frequency)
+                if weight is None:
+                    weight = round(1 + np.log2(frequency), 3)
+                    frequency_weights[frequency] = weight
+                matrix[row, column] = weight
 
         return matrix
     def calculate_ts_idf(self, termsets):
@@ -76,7 +81,9 @@ class Model(ABC):
 
         Query mappings carry explicit IDs. Tokenized query lists use collection
         query order when their lengths match; subsets need an ID mapping for
-        evaluation. Raw strings are split on whitespace before stopword removal.
+        evaluation. When the collection has a preprocessor, the same rules are
+        applied to raw and tokenized queries. Otherwise, raw strings are split
+        on whitespace. Optional query stopword removal follows tokenization.
         """
         if queries is None:
             queries = self.collection.queries
@@ -95,16 +102,14 @@ class Model(ABC):
             values.clear()
 
         for i, (query_id, query) in enumerate(query_items, start=1):
-            if isinstance(query, str):
+            if self.collection.preprocessor is not None:
+                query = self.collection.preprocessor(query)
+            elif isinstance(query, str):
                 query = query.split()
             if stopwords:
                 query = [word for word in query if word not in self.collection.stopwords]
-            print(query)
-            print(f"\nQuery {i} of {len(query_items)}")
-            print(f"Query length: {len(query)}")
 
             freq_termsets = apriori(query, self.collection.inverted_index, min_freq)
-            print(f"Frequent Termsets: {len(freq_termsets)}")
 
             query_vector = self.calculate_ts_idf(freq_termsets)
             document_vectors = self.calculate_tsf(freq_termsets)
@@ -169,9 +174,9 @@ class Model(ABC):
             self.precision.append(round(precision, 8))
             self.recall.append(round(recall, 8))
             self.reciprocal_ranks.append(round(reciprocal_rank, 8))
-            print(
-                f"=> Query {query_id} ({i}/{number_of_queries}), "
-                f"precision = {precision:.3f}, recall = {recall:.3f}"
-            )
+            # print(
+            #     f"=> Query {query_id} ({i}/{number_of_queries}), "
+            #     f"precision = {precision:.3f}, recall = {recall:.3f}"
+            # )
 
         return np.array(self.precision), np.array(self.recall)
