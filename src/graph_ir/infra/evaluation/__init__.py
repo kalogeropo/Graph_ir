@@ -1,1 +1,1 @@
-"""Retrieval metrics and legacy evaluation compatibility."""
+"""Retrieval evaluation helpers and metrics."""

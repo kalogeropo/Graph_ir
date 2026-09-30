@@ -9,8 +9,21 @@ version = "0.1.0"
 description = "Graph-based information retrieval models and experiments."
 dependencies = [
     "numpy",
-    "gensim>=4.4.0",
     "networkx>=3.7",
+    "nltk>=3.10.3",
+]
+
+optional-dependencies.dev = [
+    "pytest>=7.0",
+    "ruff>=0.1.0",
+]
+optional-dependencies.spectral = [
+    "gensim>=4.4.0",
+    "scikit-learn>=1.0",
+]
+optional-dependencies.embeddings = [
+    "torch>=2.0",
+    "transformers>=4.30",
 ]
 
 [tool.setuptools.packages.find]

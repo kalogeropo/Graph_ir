@@ -2,6 +2,7 @@ import csv
 import json
 from collections import Counter
 from pathlib import Path
+from nltk.corpus import stopwords
 
 from graph_ir.data.preprocessing.document import Document
 
@@ -11,6 +12,7 @@ from graph_ir.data.preprocessing.document import Document
 class Collection:
     def __init__(self, path: str | Path , docs=None):
 
+        self.stopwords = stopwords.words("english")
         self.path = Path(path)
         self.docs = list(docs) if docs is not None else []
         self.num_docs = len(self.docs)
@@ -154,11 +156,3 @@ class Collection:
 
         self.qrels = qrels
         return self
-
-if __name__ == "__main__":
-    collection = Collection("/home/nikitas/PycharmProjects/Graph_ir/collections/baeza").create()
-    collection.load_queries().load_qrels()
-    # print(collection.queries)
-    # print(collection.qrels)
-    # print(collection.inverted_index)
-    print(collection.inverted_index)
