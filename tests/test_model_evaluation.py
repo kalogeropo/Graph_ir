@@ -9,9 +9,9 @@ import unittest
 
 import numpy as np
 
-from graph_ir.data.preprocessing.collection import Collection
-from graph_ir.infra.evaluation.metrics import calc_precision_recall, evaluate_sim
-from graph_ir.infra.models.model import Model
+from graph_ir.data.collection import Collection
+from graph_ir.evaluation.metrics import calc_precision_recall, evaluate_sim
+from graph_ir.models.model import Model
 
 
 class FixtureModel(Model):

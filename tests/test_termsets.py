@@ -9,11 +9,24 @@ import unittest
 
 import numpy as np
 
-from graph_ir.data.preprocessing.collection import Collection
-from graph_ir.infra.models.termsets import calculate_tsf
+from graph_ir.data.collection import Collection
+from graph_ir.models.model import Model
 
 
 BAEZA_PATH = Path(__file__).resolve().parents[1] / "collections" / "baeza"
+
+
+class FixtureModel(Model):
+    """Minimal concrete Model subclass for testing termset functions."""
+
+    def get_model(self):
+        return "fixture"
+
+    def _model_func(self, freq_termsets):
+        return np.ones(len(freq_termsets))
+
+    def _vectorizer(self, tsf_ij, idf, *args):
+        return tsf_ij * idf.reshape(-1, 1)
 
 
 def legacy_tsf(collection, termsets):
@@ -35,6 +48,7 @@ def legacy_tsf(collection, termsets):
 class TermsetMatrixTest(unittest.TestCase):
     def setUp(self):
         self.collection = Collection(BAEZA_PATH).create()
+        self.model = FixtureModel(self.collection)
 
     def test_matches_legacy_for_all_baeza_termsets_up_to_size_three(self):
         termsets = {}
@@ -47,7 +61,7 @@ class TermsetMatrixTest(unittest.TestCase):
                 if document_ids:
                     termsets[frozenset(terms_in_set)] = sorted(document_ids)
         np.testing.assert_array_equal(
-            calculate_tsf(self.collection, termsets),
+            self.model.calculate_tsf(termsets),
             legacy_tsf(self.collection, termsets),
         )
 
@@ -56,7 +70,7 @@ class TermsetMatrixTest(unittest.TestCase):
                     frozenset({"a", "d"}): ["1", "2"],
                     frozenset({"l"}): ["4"]}
         np.testing.assert_array_equal(
-            calculate_tsf(self.collection, termsets),
+            self.model.calculate_tsf(termsets),
             [[3.0, 2.0, 0.0, 0.0],
              [2.0, 2.0, 0.0, 0.0],
              [0.0, 0.0, 0.0, 2.585]],
@@ -71,9 +85,10 @@ class TermsetMatrixTest(unittest.TestCase):
                 encoding="utf-8",
             )
             collection = Collection(directory).create()
+            model = FixtureModel(collection)
             self.assertEqual(collection.doc_id_to_position, {"42": 0, "10": 1})
             np.testing.assert_array_equal(
-                calculate_tsf(collection, {frozenset({"a"}): ["10", "42"]}),
+                model.calculate_tsf({frozenset({"a"}): ["10", "42"]}),
                 [[2.0, 1.0]],
             )
             self.assertEqual(collection.docs[0].id, "42")
@@ -86,10 +101,11 @@ class TermsetMatrixTest(unittest.TestCase):
         self.collection.create(first=0)
         self.assertEqual(self.collection.doc_id_to_position, {})
         self.assertEqual(self.collection.inverted_index, {})
-        self.assertEqual(calculate_tsf(self.collection, {}).shape, (0, 0))
+        self.model = FixtureModel(self.collection)
+        self.assertEqual(self.model.calculate_tsf({}).shape, (0, 0))
 
     def test_empty_termsets_preserve_document_dimension(self):
-        self.assertEqual(calculate_tsf(self.collection, {}).shape, (0, 4))
+        self.assertEqual(self.model.calculate_tsf({}).shape, (0, 4))
 
 
 if __name__ == "__main__":

@@ -9,9 +9,9 @@ from unittest.mock import patch
 
 import numpy as np
 
-from graph_ir.data.preprocessing.collection import Collection
-from graph_ir.infra.models.model import Model
-from graph_ir.infra.utilities.apriori import apriori, create_candidate_k
+from graph_ir.data.collection import Collection
+from graph_ir.models.model import Model
+from graph_ir.models.apriori import apriori, create_candidate_k
 
 
 BAEZA_PATH = Path(__file__).resolve().parents[1] / "collections" / "baeza"
@@ -134,7 +134,7 @@ class ModelQueryInputTest(unittest.TestCase):
         self.collection.stopwords = {"and"}
         model = QueryInputModel(self.collection)
         with patch(
-            "graph_ir.infra.models.model.apriori", wraps=apriori
+            "graph_ir.models.model.apriori", wraps=apriori
         ) as miner, redirect_stdout(io.StringIO()):
             self.assertIs(model.fit(min_freq=2, stopwords=True), model)
         self.assertEqual(miner.call_args.args[0], ["a", "d"])
@@ -143,7 +143,7 @@ class ModelQueryInputTest(unittest.TestCase):
     def test_fit_accepts_legacy_tokenized_query_lists(self):
         model = QueryInputModel(self.collection)
         with patch(
-            "graph_ir.infra.models.model.apriori", wraps=apriori
+            "graph_ir.models.model.apriori", wraps=apriori
         ) as miner, redirect_stdout(io.StringIO()):
             model.fit(queries=[["a", "d"]], min_freq=2)
         self.assertEqual(miner.call_args.args[0], ["a", "d"])

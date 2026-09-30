@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from graph_ir.data.preprocessing.collection import Collection
+from graph_ir.data.collection import Collection
 
 
 BAEZA_PATH = Path(__file__).resolve().parents[1] / "collections" / "baeza"

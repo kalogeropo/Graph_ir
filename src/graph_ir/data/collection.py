@@ -1,10 +1,10 @@
 import csv
 import json
-from collections import Counter
 from pathlib import Path
 from nltk.corpus import stopwords
 
-from graph_ir.data.preprocessing.document import Document
+from graph_ir.data.document import Document
+from graph_ir.indexing.inverted_index import build_inverted_index
 
 
 
@@ -67,22 +67,7 @@ class Collection:
 
     def create_inverted_index(self):
         """Build an index whose postings map document IDs to term frequencies."""
-        index = {}
-
-        for document in self.docs:
-            for term, frequency in Counter(document.terms).items():
-                if term not in index:
-                    index[term] = {
-                        "id": len(index),
-                        "term": term,
-                        "total_tf": 0,
-                        "posting_list": {},
-                    }
-
-                index[term]["total_tf"] += frequency
-                index[term]["posting_list"][document.id] = frequency
-
-        return index
+        return build_inverted_index(self.docs)
 
     def load_queries(self):
         qs = {}
