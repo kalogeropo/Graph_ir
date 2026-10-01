@@ -45,12 +45,11 @@ class GSBModel(Model):
 
     def _model_func(self, freq_termsets: Any) -> ndarray:
         tns = zeros(len(freq_termsets), dtype=float)
-        inverted_index = self.collection.inverted_index
         for i, termset in enumerate(freq_termsets):
             temp = 1
             for term in termset:
-                if term in inverted_index:
-                    temp *= inverted_index[term]['nwk']
+                if term in self._nwk:
+                    temp *= self._nwk[term]
             tns[i] = round(temp, 3)
         return tns
 
@@ -193,5 +192,4 @@ class GSBModel(Model):
                 score = 0
 
             nwk[term] = score
-            self.collection.inverted_index[term]['nwk'] = score
         return nwk

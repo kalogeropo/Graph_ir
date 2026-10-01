@@ -2,10 +2,11 @@ import csv
 import json
 from collections.abc import Callable
 from pathlib import Path
+import nltk
 from nltk.corpus import stopwords
 
 from graph_ir.data.document import Document
-from graph_ir.indexing.inverted_index import build_inverted_index
+from graph_ir.indexing.inverted_index import build_inverted_index, export_inverted_index
 
 
 
@@ -13,7 +14,7 @@ from graph_ir.indexing.inverted_index import build_inverted_index
 class Collection:
     def __init__(self, path: str | Path , docs=None):
 
-        self.stopwords = stopwords.words("english")
+        self._stopwords = None
         self.path = Path(path)
         self.docs = list(docs) if docs is not None else []
         self.num_docs = len(self.docs)
@@ -24,7 +25,28 @@ class Collection:
         self.doc_id_to_position = {}
         self.preprocessor: Callable[[str | list[str]], list[str]] | None = None
 
+    @property
+    def stopwords(self):
+        """English stopwords.
 
+        Loaded from nltk on first use, not at construction, so merely
+        building a Collection never requires the nltk 'stopwords' corpus.
+        If the corpus is missing when first actually needed, it is
+        downloaded then (never at construction, and never silently -- a
+        message is printed first). Assign a value directly to override it.
+        """
+        if self._stopwords is None:
+            try:
+                self._stopwords = stopwords.words("english")
+            except LookupError:
+                print("nltk 'stopwords' corpus not found; downloading it now...")
+                nltk.download("stopwords", quiet=True)
+                self._stopwords = stopwords.words("english")
+        return self._stopwords
+
+    @stopwords.setter
+    def stopwords(self, value):
+        self._stopwords = value
 
     def create(self, first: int | None = None,
                fields=("title", "text", "abstract", "extract"), *,
@@ -84,12 +106,28 @@ class Collection:
         """Build an index whose postings map document IDs to term frequencies."""
         return build_inverted_index(self.docs)
 
-    def load_queries(self):
+    def export_inverted_index(self, path: str | Path | None = None) -> list[dict]:
+        """Flatten this collection's inverted index into JSON-serializable records.
+
+        See indexing.inverted_index.export_inverted_index for the record shape.
+        Pass a path under artifacts/ to also write the records as JSON there.
+        """
+        return export_inverted_index(self.inverted_index, path)
+
+    def load_queries(self) -> "Collection":
+        """Load query text keyed by explicit query ID.
+
+        Raises:
+            ValueError: If a query ID occurs more than once.
+        """
         qs = {}
         with (self.path / "queries.jsonl").open(encoding="utf-8") as stream:
             for line in stream:
                 query = json.loads(line)
-                qs[str(query["_id"])] = query["text"]
+                query_id = str(query["_id"])
+                if query_id in qs:
+                    raise ValueError(f"Duplicate query ID: {query_id}")
+                qs[query_id] = query["text"]
         self.queries = qs
         return self
 

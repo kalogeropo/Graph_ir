@@ -32,26 +32,26 @@ def evaluate_sim(query, dtm, document_ids):
 def calc_precision_recall(doc_sims, relevant, k):
     """Return mean precision/recall at relevant hits and reciprocal rank.
 
-    These averages differ from standard precision@k, recall@k, and AP.
-    Current cutoff behavior: for k > 1, processing stops
-    before rank k; k=1 does not trigger an early stop.
+    These averages differ from standard precision@k, recall@k, and AP: each
+    is the mean of precision/recall computed at every relevant hit's own
+    rank, not a single value at rank k. k is an ordinary top-k cutoff: only
+    the first k ranked documents are considered, and k=0 or a ranking
+    shorter than k considers only what is actually there.
     """
     count = 0
-    retrieved = 1
     precision = []
     recall = []
     reciprocal_rank = 0.0
 
-    for document_id in doc_sims:
+    for retrieved, document_id in enumerate(doc_sims, start=1):
+        if retrieved > k:
+            break
         if document_id in relevant:
             count += 1
             precision.append(count / retrieved)
             recall.append(count / len(relevant))
             if count == 1:
                 reciprocal_rank = 1 / retrieved
-        retrieved += 1
-        if retrieved == k:
-            break
 
     average_precision = sum(precision) / len(precision) if precision else 0.0
     average_recall = sum(recall) / len(recall) if recall else 0.0

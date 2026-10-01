@@ -5,6 +5,7 @@ import numpy as np
 from numpy import array
 
 from graph_ir.data.collection import Collection
+from graph_ir.data.preprocessing.text import remove_stopwords
 from graph_ir.models.apriori import apriori
 from graph_ir.evaluation.metrics import calc_precision_recall, evaluate_sim
 
@@ -18,6 +19,7 @@ class Model(ABC):
         self._docVectors = []
         self._weights = []
         self._query_ids = []
+        self._document_ids = []
         # metrics
         self.precision = []
         self.recall = []
@@ -83,14 +85,16 @@ class Model(ABC):
         query order when their lengths match; subsets need an ID mapping for
         evaluation. When the collection has a preprocessor, the same rules are
         applied to raw and tokenized queries. Otherwise, raw strings are split
-        on whitespace. Optional query stopword removal follows tokenization.
+        on whitespace. Optional query stopword removal follows tokenization
+        and is case-insensitive against collection.stopwords regardless of
+        whether a preprocessor already lowercased the tokens.
         """
         if queries is None:
             queries = self.collection.queries
         if isinstance(queries, dict):
             query_items = [(str(query_id), query) for query_id, query in queries.items()]
         else:
-            query_ids = list(self.collection.queries)
+            query_ids = [str(query_id) for query_id in self.collection.queries]
             if len(queries) != len(query_ids):
                 query_ids = [None] * len(queries)
             query_items = list(zip(query_ids, queries, strict=True))
@@ -101,13 +105,22 @@ class Model(ABC):
         ):
             values.clear()
 
+        # Snapshot document identity now: calculate_tsf lays out matrix columns
+        # using the collection as it is at this moment. evaluate() must label
+        # those same columns later, even if the collection is reloaded or
+        # mutated in between, so it reads this snapshot instead of re-deriving
+        # document order from the live collection.
+        self._document_ids = [document.id for document in self.collection.docs]
+
         for i, (query_id, query) in enumerate(query_items, start=1):
             if self.collection.preprocessor is not None:
                 query = self.collection.preprocessor(query)
             elif isinstance(query, str):
                 query = query.split()
             if stopwords:
-                query = [word for word in query if word not in self.collection.stopwords]
+                query = remove_stopwords(
+                    query, self.collection.stopwords, case_insensitive=True,
+                )
 
             freq_termsets = apriori(query, self.collection.inverted_index, min_freq)
 
@@ -128,8 +141,11 @@ class Model(ABC):
 
         Judgments are selected by fitted query ID. Rankings retain original
         document IDs, and repeated calls replace previous evaluation results.
-        Per-query reciprocal ranks are stored in reciprocal_ranks. Metric definitions
-        and cutoff behavior are documented in the evaluation helpers.
+        Per-query reciprocal ranks are stored in reciprocal_ranks. k is an
+        ordinary top-k cutoff (only the first k ranked documents are
+        considered); None considers the full ranking. The precision/recall
+        values themselves are means at each relevant hit's rank, not a
+        single value at rank k -- see evaluation.metrics.calc_precision_recall.
         """
         if k is not None and (
             isinstance(k, bool) or not isinstance(k, int) or k < 1
@@ -149,7 +165,10 @@ class Model(ABC):
             values.clear()
 
         relevant = self.collection.relevant
-        document_ids = [document.id for document in self.collection.docs]
+        # Use the document order captured at fit() time, not the live
+        # collection: matrix columns were laid out against that snapshot, and
+        # the collection may have been reloaded or mutated since.
+        document_ids = self._document_ids
         fitted_queries = zip(
             self._query_ids, self._queryVectors, self._docVectors,
             self._weights, strict=True,

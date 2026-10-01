@@ -58,17 +58,34 @@ class EvaluationHelperTest(unittest.TestCase):
     def test_metric_definitions_and_cutoff(self):
         ranking = ["10", "42", "100"]
         relevant = ["42", "100"]
+        # k=3 (and anything >= the ranking length) considers the full list.
         np.testing.assert_allclose(
             calc_precision_recall(ranking, relevant, 4), [7 / 12, 3 / 4, 1 / 2]
         )
-        self.assertEqual(
-            calc_precision_recall(ranking, relevant, 3), (0.5, 0.5, 0.5)
-        )
         np.testing.assert_allclose(
-            calc_precision_recall(ranking, relevant, 1), [7 / 12, 3 / 4, 1 / 2]
+            calc_precision_recall(ranking, relevant, 3), [7 / 12, 3 / 4, 1 / 2]
+        )
+        # k=2: ranks 1-2 only ("10" not relevant, "42" relevant at rank 2).
+        self.assertEqual(
+            calc_precision_recall(ranking, relevant, 2), (0.5, 0.5, 0.5)
+        )
+        # k=1: rank 1 only ("10"), which is not relevant.
+        self.assertEqual(
+            calc_precision_recall(ranking, relevant, 1), (0.0, 0.0, 0.0)
         )
         self.assertEqual(calc_precision_recall(ranking, [], 3), (0, 0, 0))
         self.assertEqual(calc_precision_recall([], relevant, 0), (0, 0, 0))
+
+    def test_cutoff_is_a_monotonic_top_k_truncation(self):
+        # Increasing k must never examine FEWER ranks than a smaller k did.
+        # k here is an ordinary top-k cutoff, unlike the earlier inherited
+        # off-by-one (see docs/source_notes.md for that history); this test
+        # guards against that class of bug returning by accident.
+        ranking = ["10", "42", "100"]
+        relevant = ["42", "100"]
+        results = [calc_precision_recall(ranking, relevant, k) for k in (1, 2, 3)]
+        recalls = [recall for _, recall, _ in results]
+        self.assertEqual(recalls, sorted(recalls))
 
 
 class ModelEvaluationTest(unittest.TestCase):
@@ -137,6 +154,24 @@ class ModelEvaluationTest(unittest.TestCase):
             self.model.fit(queries=[["a"], ["b"], ["a", "b"]])
             precision, recall = self.model.evaluate()
         self.assertEqual(self.model._query_ids, ["q42", "q10", "q100"])
+        np.testing.assert_array_equal(precision, [1, 1, 1])
+        np.testing.assert_array_equal(recall, [1, 1, 1])
+
+    def test_tokenized_query_lists_stringify_non_string_collection_query_ids(self):
+        # collection.queries can have non-string keys if built some way other
+        # than Collection.load_queries() (which always produces str keys).
+        # qrels keys are always strings (parsed from qrels.tsv text), so the
+        # list-input path must coerce IDs the same way the dict-input path
+        # already does, or relevance lookups silently miss everything.
+        self.collection.queries = {1: "a", 2: "b", 3: "a b"}
+        self.collection.qrels = {"1": {"42": 1}, "2": {"10": 1}, "3": {"100": 1}}
+
+        with redirect_stdout(io.StringIO()):
+            self.model.fit(queries=[["a"], ["b"], ["a", "b"]])
+            precision, recall = self.model.evaluate()
+
+        self.assertEqual(self.model._query_ids, ["1", "2", "3"])
+        self.assertTrue(all(isinstance(q, str) for q in self.model._query_ids))
         np.testing.assert_array_equal(precision, [1, 1, 1])
         np.testing.assert_array_equal(recall, [1, 1, 1])
 

@@ -156,6 +156,19 @@ class ModelQueryInputTest(unittest.TestCase):
         self.assertEqual(miner.call_args.args[0], ["a", "d"])
         self.assertEqual(self.collection.queries, {"42": "a and d"})
 
+    def test_fit_stopword_removal_is_case_insensitive_with_no_preprocessor(self):
+        # No preprocessor is set, so query.split() preserves case exactly as
+        # written ("And", capitalized). collection.stopwords is lowercase
+        # (as nltk's list always is). Filtering must still catch it.
+        self.collection.queries = {"42": "a And d"}
+        self.collection.stopwords = {"and"}
+        model = QueryInputModel(self.collection)
+        with patch(
+            "graph_ir.models.model.apriori", wraps=apriori
+        ) as miner, redirect_stdout(io.StringIO()):
+            model.fit(min_freq=2, stopwords=True)
+        self.assertEqual(miner.call_args.args[0], ["a", "d"])
+
     def test_fit_accepts_legacy_tokenized_query_lists(self):
         model = QueryInputModel(self.collection)
         with patch(

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from graph_ir.data.collection import Collection
 
@@ -52,6 +53,19 @@ class CollectionTest(unittest.TestCase):
                 "4": "this the d test",
             },
         )
+
+    def test_duplicate_query_id_is_rejected_without_overwriting_existing_data(self):
+        with tempfile.TemporaryDirectory() as directory:
+            collection = Collection(directory)
+            collection.queries = {"existing": "text"}
+            (Path(directory) / "queries.jsonl").write_text(
+                json.dumps({"_id": "1", "text": "a"}) + "\n"
+                + json.dumps({"_id": "1", "text": "b"}) + "\n",
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(ValueError, "Duplicate query ID: 1"):
+                collection.load_queries()
+            self.assertEqual(collection.queries, {"existing": "text"})
 
     def test_qrels_preserve_zero_scores_and_missing_document_judgments(self):
         self.assertEqual(
@@ -132,6 +146,61 @@ class CollectionTest(unittest.TestCase):
             )
             with self.assertRaisesRegex(ValueError, "Duplicate document ID"):
                 collection.create()
+
+
+class StopwordsLazyLoadingTest(unittest.TestCase):
+    """Constructing/loading a Collection must never require nltk data;
+    only actually reading .stopwords should touch it, and only once."""
+
+    def test_construction_does_not_load_stopwords(self):
+        with patch("graph_ir.data.collection.stopwords.words") as mocked_words:
+            Collection(BAEZA_PATH)
+            mocked_words.assert_not_called()
+
+    def test_create_and_query_loading_do_not_load_stopwords(self):
+        with patch("graph_ir.data.collection.stopwords.words") as mocked_words:
+            Collection(BAEZA_PATH).create().load_queries().load_qrels()
+            mocked_words.assert_not_called()
+
+    def test_first_read_loads_stopwords_once_and_caches_the_result(self):
+        with patch(
+            "graph_ir.data.collection.stopwords.words", return_value=["a", "the"]
+        ) as mocked_words:
+            collection = Collection(BAEZA_PATH)
+            mocked_words.assert_not_called()
+
+            first = collection.stopwords
+            second = collection.stopwords
+
+            mocked_words.assert_called_once_with("english")
+            self.assertEqual(first, ["a", "the"])
+            self.assertIs(first, second)
+
+    def test_assigning_stopwords_directly_bypasses_nltk_entirely(self):
+        with patch("graph_ir.data.collection.stopwords.words") as mocked_words:
+            collection = Collection(BAEZA_PATH)
+            collection.stopwords = {"and"}
+            self.assertEqual(collection.stopwords, {"and"})
+            mocked_words.assert_not_called()
+
+    def test_missing_corpus_is_downloaded_once_on_first_read_not_silently(self):
+        with (
+            patch(
+                "graph_ir.data.collection.stopwords.words",
+                side_effect=[LookupError("missing"), ["a", "the"]],
+            ) as mocked_words,
+            patch("graph_ir.data.collection.nltk.download") as mocked_download,
+            patch("builtins.print") as mocked_print,
+        ):
+            collection = Collection(BAEZA_PATH)
+            mocked_download.assert_not_called()  # never at construction
+
+            result = collection.stopwords
+
+            mocked_download.assert_called_once_with("stopwords", quiet=True)
+            self.assertEqual(mocked_words.call_count, 2)  # retried after downloading
+            self.assertEqual(result, ["a", "the"])
+            mocked_print.assert_called_once()  # not silent
 
 
 if __name__ == "__main__":

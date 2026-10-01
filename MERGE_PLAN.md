@@ -7,8 +7,9 @@ One `graph_ir` package containing the workflows of the four projects in `to_merg
 1. **Parity first, then optimize.** Port behavior, verify against saved reference output, commit. Only then optimize, one change per commit, re-verified. Record before/after timings in the commit message.
 2. **Reference outputs are fixtures.** Run the old code in a throwaway venv (old library versions), on `baeza`, `test`, then CF. Save rankings and scores under `tests/fixtures/` with the library versions recorded.
 3. **Bug fixes and optimizations are separate commits** from migration, with a note when rankings change.
-4. **No prints, file writes or downloads in constructors.** Model state lives on the model, not in the collection's index. Seed anything random.
+4. **No prints, file writes, or downloads in constructors.** A resource may be fetched lazily, on its first actual use, only when it's genuinely missing, and only with a visible message — never silently, and never just because an object was constructed. Model state lives on the model, not in the collection's index. Seed anything random.
 5. **Uniform API:** `model.index(collection)`, `model.search(queries, top_k)` returning IDs, scores, ranks. Evaluation is separate.
+6. **Reference implementations in `to_merge/` are not assumed correct.** They can contain bugs and unoptimized code. "Preserve legacy behavior" means preserving what a model or metric was intended to compute, not reproducing its accidental defects. A genuine bug gets fixed and documented as a bug fix (rule 3), not kept for parity's own sake.
 
 ## Layout
 ```
@@ -41,10 +42,10 @@ tests/  tests/fixtures/  configs/  collections/  notebooks/  artifacts/
 | 9 | Procedural predecessor branches, DocGraph/onlineGSB status, remaining scripts/notebooks. | Every checklist item has a destination or agreed status |
 
 ## Known risks to verify
-Query/doc case mismatch; legacy metric cutoff off-by-one (kept, labeled legacy); `h_val`/`p_val` int-vs-float meaning; shared `nwk` state; window tail handling; NaN in `infre` metrics; unseeded spectral clustering.
+Query/doc case mismatch; `h_val`/`p_val` int-vs-float meaning; window tail handling; NaN in `infre` metrics; unseeded spectral clustering.
 
 ## Metrics
-Keep legacy metrics under legacy names; add validated P@k, R@k, AP, MRR, nDCG with hand-checked tests.
+Keep legacy metrics under legacy names, preserving their intended definitions rather than accidental implementation bugs (rule 6); add validated P@k, R@k, AP, MRR, nDCG with hand-checked tests.
 
 ## Definition of done
 All four projects in a source-to-destination checklist (`docs/checklist.md`), each item migrated, verified, or explicitly marked historical. Representative workflows run from raw inputs to results with tracked code only.
