@@ -10,9 +10,8 @@ from unittest.mock import patch
 import numpy as np
 
 from graph_ir.data.collection import Collection
-from graph_ir.models.model import Model
 from graph_ir.models.apriori import apriori, create_candidate_k
-
+from graph_ir.models.model import Model
 
 BAEZA_PATH = Path(__file__).resolve().parents[1] / "collections" / "baeza"
 

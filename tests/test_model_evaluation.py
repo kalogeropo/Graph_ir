@@ -194,10 +194,11 @@ class ModelEvaluationTest(unittest.TestCase):
                 return None
 
         model = PlaceholderModel(self.collection)
+        # Scoring happens in fit(), so the missing _vectorizer is reported
+        # there, at the point of the mistake, rather than later in evaluate().
         with redirect_stdout(io.StringIO()):
-            model.fit(queries={"q42": "a"})
-        with self.assertRaisesRegex(NotImplementedError, "_vectorizer"):
-            model.evaluate()
+            with self.assertRaisesRegex(NotImplementedError, "_vectorizer"):
+                model.fit(queries={"q42": "a"})
 
     def test_empty_query_batch_returns_empty_results(self):
         with redirect_stdout(io.StringIO()):

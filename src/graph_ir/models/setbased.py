@@ -1,4 +1,5 @@
 from typing import Any
+
 import numpy as np
 from numpy import ndarray
 
@@ -12,13 +13,6 @@ class SetBasedModel(Model):
     mining with cosine similarity ranking. Termsets are weighted by IDF alone,
     without graph properties.
     """
-
-    def __init__(self, collection):
-        super().__init__(collection)
-        self._model = self.get_model()
-
-    def get_model(self) -> str:
-        return self.__class__.__name__
 
     def _model_func(self, freq_termsets: Any) -> ndarray:
         """Return uniform weights for termsets (no graph weighting).

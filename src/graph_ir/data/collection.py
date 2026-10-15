@@ -1,14 +1,13 @@
+from collections.abc import Callable
 import csv
 import json
-from collections.abc import Callable
 from pathlib import Path
+
 import nltk
 from nltk.corpus import stopwords
 
 from graph_ir.data.document import Document
 from graph_ir.indexing.inverted_index import build_inverted_index, export_inverted_index
-
-
 
 
 class Collection:
@@ -17,13 +16,22 @@ class Collection:
         self._stopwords = None
         self.path = Path(path)
         self.docs = list(docs) if docs is not None else []
-        self.num_docs = len(self.docs)
 
         self.queries = {}
         self.qrels = {}
         self.inverted_index = {}
         self.doc_id_to_position = {}
         self.preprocessor: Callable[[str | list[str]], list[str]] | None = None
+
+    @property
+    def num_docs(self) -> int:
+        """Number of loaded documents.
+
+        Derived rather than stored: it is the column count every termset matrix
+        is built against, so a stored copy left stale by a direct mutation of
+        docs would silently disagree with the document order models snapshot.
+        """
+        return len(self.docs)
 
     @property
     def stopwords(self):
@@ -92,7 +100,6 @@ class Collection:
                 seen_ids.add(document_id)
 
         self.docs = documents
-        self.num_docs = len(documents)
         self.inverted_index = self.create_inverted_index()
         self.doc_id_to_position = {
             document.id: position
@@ -133,22 +140,27 @@ class Collection:
 
 
     @property
-    def relevant(self) -> dict[str, list[str]]:
+    def relevant(self) -> dict[str, set[str]]:
         """Return relevant document IDs per query for binary evaluation.
 
         Scores of at least 1 count as relevant. Known queries without judgments
-        have empty lists. Graded qrels remain unchanged for nDCG.
+        have empty sets. Graded qrels remain unchanged for nDCG.
+
+        Sets, not lists: these are only ever membership-tested, once per ranked
+        document, and CF has up to 304 relevant documents for a single query --
+        scanning that as a list made scoring 100 queries about 26x slower for
+        identical results.
         """
         relevant = {
-            query_id: [
+            query_id: {
                 document_id
                 for document_id, score in judgments.items()
                 if score >= 1
-            ]
+            }
             for query_id, judgments in self.qrels.items()
         }
         for query_id in self.queries:
-            relevant.setdefault(query_id, [])
+            relevant.setdefault(query_id, set())
         return relevant
 
     def load_qrels(self, filename: str = "qrels.tsv") -> "Collection":

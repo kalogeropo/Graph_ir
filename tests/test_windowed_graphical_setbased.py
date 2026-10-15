@@ -13,7 +13,6 @@ from graph_ir.data.document import Document
 from graph_ir.models.graphical_setbased import GSBModel
 from graph_ir.models.windowed_graphical_setbased import WindowedGSBModel
 
-
 BAEZA_PATH = Path(__file__).resolve().parents[1] / "collections" / "baeza"
 
 

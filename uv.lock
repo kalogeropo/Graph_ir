@@ -317,6 +317,7 @@ dependencies = [
     { name = "networkx" },
     { name = "nltk" },
     { name = "numpy" },
+    { name = "scipy" },
 ]
 
 [package.optional-dependencies]
@@ -343,6 +344,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
     { name = "scikit-learn", marker = "extra == 'spectral'", specifier = ">=1.0" },
+    { name = "scipy", specifier = ">=1.12" },
     { name = "torch", marker = "extra == 'embeddings'", specifier = ">=2.0" },
     { name = "transformers", marker = "extra == 'embeddings'", specifier = ">=4.30" },
 ]

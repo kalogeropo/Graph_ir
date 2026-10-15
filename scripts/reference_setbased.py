@@ -14,12 +14,11 @@ Outputs are saved to tests/fixtures/setbased_reference/ with metadata.
 The old code stays under to_merge/ and is not committed.
 """
 
-import sys
-import subprocess
-import tempfile
-import shutil
 import json
 from pathlib import Path
+import subprocess
+import sys
+import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 TO_MERGE = ROOT / "to_merge" / "Gsb_model"
@@ -114,7 +113,7 @@ def main():
             # Parse qrels to old format (query_id: [doc_ids...])
             relevant = {}
             with open(qrels_path) as f:
-                header = f.readline()  # skip
+                f.readline()  # skip the header row
                 for line in f:
                     parts = line.strip().split("\t")
                     if len(parts) >= 3:

@@ -25,24 +25,3 @@ class Document:
         if isinstance(self.text, list):
             return self.text.copy()
         return self.text.split()
-
-    def split_document(self, window: int) -> list[list[str]]:
-        """Split terms into consecutive, non-overlapping windows.
-
-        Args:
-            window: Maximum number of tokens per window. Must be positive.
-
-        Returns:
-            Token windows in document order. The final window may be shorter;
-            an empty document produces an empty list.
-
-        Raises:
-            ValueError: If window is zero or negative.
-        """
-        if window <= 0:
-            raise ValueError("window must be positive")
-
-        return [
-            self.terms[i:i + window]
-            for i in range(0, self.num_of_words, window)
-        ]

@@ -3,11 +3,6 @@
 from itertools import combinations
 
 
-def intersection(a: set, b: set) -> set:
-    """Return IDs shared by two document sets."""
-    return a & b
-
-
 def create_candidate_1(query, inv_index):
     """Build unique singleton candidates in query order.
 
@@ -79,9 +74,8 @@ def create_candidate_k(freq_termsets, k):
         ):
             continue
 
-        candidates[termset] = intersection(
-            freq_termsets[first], freq_termsets[second]
-        )
+        # A candidate's documents are those holding both parents' terms.
+        candidates[termset] = freq_termsets[first] & freq_termsets[second]
 
     return candidates
 

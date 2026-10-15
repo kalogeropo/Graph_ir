@@ -12,7 +12,6 @@ import numpy as np
 from graph_ir.data.collection import Collection
 from graph_ir.models.model import Model
 
-
 BAEZA_PATH = Path(__file__).resolve().parents[1] / "collections" / "baeza"
 
 
@@ -61,7 +60,7 @@ class TermsetMatrixTest(unittest.TestCase):
                 if document_ids:
                     termsets[frozenset(terms_in_set)] = sorted(document_ids)
         np.testing.assert_array_equal(
-            self.model.calculate_tsf(termsets),
+            self.model.calculate_tsf(termsets).toarray(),
             legacy_tsf(self.collection, termsets),
         )
 
@@ -70,7 +69,7 @@ class TermsetMatrixTest(unittest.TestCase):
                     frozenset({"a", "d"}): ["1", "2"],
                     frozenset({"l"}): ["4"]}
         np.testing.assert_array_equal(
-            self.model.calculate_tsf(termsets),
+            self.model.calculate_tsf(termsets).toarray(),
             [[3.0, 2.0, 0.0, 0.0],
              [2.0, 2.0, 0.0, 0.0],
              [0.0, 0.0, 0.0, 2.585]],
@@ -88,7 +87,7 @@ class TermsetMatrixTest(unittest.TestCase):
             model = FixtureModel(collection)
             self.assertEqual(collection.doc_id_to_position, {"42": 0, "10": 1})
             np.testing.assert_array_equal(
-                model.calculate_tsf({frozenset({"a"}): ["10", "42"]}),
+                model.calculate_tsf({frozenset({"a"}): ["10", "42"]}).toarray(),
                 [[2.0, 1.0]],
             )
             self.assertEqual(collection.docs[0].id, "42")

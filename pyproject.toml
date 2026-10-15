@@ -9,6 +9,7 @@ version = "0.1.0"
 description = "Graph-based information retrieval models and experiments."
 dependencies = [
     "numpy",
+    "scipy>=1.12",
     "networkx>=3.7",
     "nltk>=3.10.3",
     "ipykernel>=7.4.0",
@@ -29,3 +30,37 @@ optional-dependencies.embeddings = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # import sorting
+    "UP",       # pyupgrade
+    "B",        # bugbear
+    "SIM",      # simplify
+    "PERF",     # performance
+    "PIE",
+    "RUF",
+]
+ignore = [
+    # The GSB formulas use the paper's own names (Win, Wout, nwk, tsf_ij, idf).
+    # Renaming them to snake_case would make the code harder to check against
+    # the source material, not easier.
+    "N806",
+]
+
+[tool.ruff.lint.isort]
+# Matches the existing style across this repo: sorted by module name, with
+# "import x" and "from x import y" interleaved rather than grouped apart.
+force-sort-within-sections = true
+
+[tool.ruff.lint.per-file-ignores]
+# E501: tests read better with long literal expectation tables on one line.
+# SIM117: `with self.subTest(...):` wrapping `with self.assertRaises(...):` is
+# the idiomatic unittest pattern; merging them makes the lines worse, not better.
+"tests/*" = ["E501", "SIM117"]

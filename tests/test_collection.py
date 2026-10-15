@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 from graph_ir.data.collection import Collection
 
-
 BAEZA_PATH = Path(__file__).resolve().parents[1] / "collections" / "baeza"
 
 
@@ -76,18 +75,18 @@ class CollectionTest(unittest.TestCase):
         self.assertEqual(self.collection.qrels["1"]["4"], 0)
 
     def test_relevant_property_tracks_qrels_without_changing_them(self):
-        self.assertEqual(self.collection.relevant["1"], ["1", "2"])
+        self.assertEqual(self.collection.relevant["1"], {"1", "2"})
         returned_view = self.collection.relevant
         returned_view["1"].clear()
-        self.assertEqual(self.collection.relevant["1"], ["1", "2"])
+        self.assertEqual(self.collection.relevant["1"], {"1", "2"})
 
         self.collection.qrels["1"]["3"] = 4
-        self.assertEqual(self.collection.relevant["1"], ["1", "2", "3"])
+        self.assertEqual(self.collection.relevant["1"], {"1", "2", "3"})
         self.assertEqual(self.collection.qrels["1"]["3"], 4)
         self.collection.queries["5"] = "unjudged query"
         self.collection.qrels["6"] = {"1": 0}
-        self.assertEqual(self.collection.relevant["5"], [])
-        self.assertEqual(self.collection.relevant["6"], [])
+        self.assertEqual(self.collection.relevant["5"], set())
+        self.assertEqual(self.collection.relevant["6"], set())
 
     def test_graded_qrels_and_empty_files(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -99,7 +98,7 @@ class CollectionTest(unittest.TestCase):
             )
             collection = Collection(path).load_qrels()
             self.assertEqual(collection.qrels["10"], {"99": 0, "42": 2, "77": 4})
-            self.assertEqual(collection.relevant["10"], ["42", "77"])
+            self.assertEqual(collection.relevant["10"], {"42", "77"})
 
             qrels_path.write_text("query-id\tcorpus-id\tscore\n", encoding="utf-8")
             collection.load_qrels()

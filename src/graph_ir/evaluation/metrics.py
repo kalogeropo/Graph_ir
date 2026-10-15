@@ -2,31 +2,75 @@
 
 import numpy as np
 
+_TIE_TOLERANCE = 10
 
-def evaluate_sim(query, dtm, document_ids):
-    """Rank matrix columns by cosine similarity using original document IDs.
 
-    Columns must follow document_ids order. Zero vectors receive score zero;
-    equal scores keep their original document order.
+def cosine_similarity(query, dtm, num_docs):
+    """Score each matrix column against the query vector, in column order.
+
+    Columns must follow document order. Zero vectors receive score zero.
+    Returns a (num_docs,) array, not a ranking -- see rank_scores.
+
+    Kept separate from ranking so a caller can score a query and keep only the
+    resulting (num_docs,) vector, instead of holding on to the matrix.
     """
     query = np.asarray(query, dtype=float)
-    dtm = np.asarray(dtm, dtype=float)
-    document_ids = list(document_ids)
-    if query.ndim != 1 or dtm.shape != (query.size, len(document_ids)):
+    if not hasattr(dtm, "nnz"):
+        dtm = np.asarray(dtm, dtype=float)
+    if query.ndim != 1 or dtm.shape != (query.size, num_docs):
         raise ValueError(
             "Expected a query vector and a termset-by-document matrix "
             "with one column per document ID"
         )
 
-    denominator = np.linalg.norm(query) * np.linalg.norm(dtm, axis=0)
-    similarities = np.divide(
+    denominator = np.linalg.norm(query) * _column_norms(dtm)
+    return np.divide(
         query @ dtm,
         denominator,
-        out=np.zeros(len(document_ids)),
+        out=np.zeros(num_docs),
         where=denominator != 0,
     )
-    scores = dict(zip(document_ids, similarities.tolist(), strict=True))
-    return dict(sorted(scores.items(), key=lambda item: item[1], reverse=True))
+
+
+def _column_norms(dtm):
+    """Euclidean norm of each column, for a dense or a scipy sparse matrix."""
+    if hasattr(dtm, "nnz"):
+        return np.sqrt(dtm.multiply(dtm).sum(axis=0))
+    return np.linalg.norm(dtm, axis=0)
+
+
+def rank_scores(similarities, document_ids):
+    """Order scores highest-first, returning {document_id: score}.
+
+    Equal scores keep their original document order, and that ordering is
+    reproducible: scores are compared rounded to _TIE_TOLERANCE decimals, then
+    ties broken by position in document_ids. The returned values are unrounded.
+
+    Rounding is what makes the tie an actual tie. Comparing raw floats meant any
+    change to the summation order -- a different matrix layout, a sparse dot
+    product, a BLAS version -- left genuinely-equal scores differing by an ULP,
+    so they sorted by that noise instead of tying. On CF 18.3% of scores sit in
+    a tie, and a 1-ULP perturbation reordered 10 of 25 queries.
+    """
+    scores = enumerate(zip(document_ids, np.asarray(similarities).tolist(), strict=True))
+    return {
+        document_id: score
+        for _, (document_id, score) in sorted(
+            scores,
+            key=lambda item: (-round(item[1][1], _TIE_TOLERANCE), item[0]),
+        )
+    }
+
+
+def evaluate_sim(query, dtm, document_ids):
+    """Rank matrix columns by cosine similarity using original document IDs.
+
+    Composes cosine_similarity and rank_scores; see those for the scoring and
+    tie-breaking rules.
+    """
+    document_ids = list(document_ids)
+    similarities = cosine_similarity(query, dtm, len(document_ids))
+    return rank_scores(similarities, document_ids)
 
 
 def calc_precision_recall(doc_sims, relevant, k):
